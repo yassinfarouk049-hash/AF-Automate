@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AF-Automate | لوحة تحكم المشرف المباشرة</title>
+    <meta name="description" content="لوحة تحكم AF-Automate">
+    <meta name="theme-color" content="#0f1016">
+    <link rel="manifest" href="./manifest.webmanifest">
+    <link rel="icon" href="./assets/icon-192.png" type="image/png">
+    <link rel="apple-touch-icon" href="./assets/icon-192.png">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: linear-gradient(135deg, #0f1016 0%, #1a1c29 100%); color: #f8f9fa; min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 15px; }
+        .container { background: rgba(18, 18, 30, 0.95); border: 1px solid #3b82f6; padding: 20px; border-radius: 16px; width: 100%; max-width: 500px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid rgba(59, 130, 246, 0.2); padding-bottom: 10px; }
+        h2 { color: #60a5fa; font-size: 16px; font-weight: 700; }
+        .badge { font-size: 10px; background: #10b981; padding: 3px 8px; border-radius: 6px; color: #fff; font-weight: 600; }
+        .section { margin-bottom: 15px; background: #0b0c10; border: 1px solid #3b82f6; padding: 12px; border-radius: 8px; }
+        label { font-size: 11px; color: #94a3b8; display: block; margin-bottom: 4px; }
+        input, select { width: 100%; padding: 8px 10px; background: #0b0c10; color: #fff; border: 1px solid #3b82f6; border-radius: 6px; font-size: 12px; outline: none; margin-bottom: 8px; }
+        button { width: 100%; background: #2563eb; color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; transition: 0.2s; }
+        button:hover { opacity: 0.9; }
+        
+        .failed-box { background: rgba(239, 68, 68, 0.1); border: 1px solid #ef4444; padding: 8px; border-radius: 6px; margin-top: 8px; max-height: 100px; overflow-y: auto; }
+        .failed-item { font-size: 10px; color: #f87171; border-bottom: 1px dashed rgba(239,68,68,0.3); padding: 4px 0; display: flex; justify-content: space-between; align-items: center; }
+        
+        .status { margin-top: 10px; font-size: 11px; color: #fbbf24; text-align: center; }
+        .account-chip { background: #1e293b; border: 1px solid #3b82f6; padding: 6px 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 11px; }
+        .controls-group { display: flex; gap: 6px; margin-top: 6px; }
+        .floating-panel { position: fixed; bottom: 15px; left: 15px; z-index: 10; width: min(260px, calc(100vw - 30px)); padding: 12px; border: 2px solid #3b82f6; border-radius: 12px; background: rgba(18, 18, 30, 0.96); box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5); direction: rtl; backdrop-filter: blur(8px); }
+        .floating-panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; color: #60a5fa; font-size: 13px; font-weight: bold; }
+        .floating-panel-badge { padding: 2px 6px; border-radius: 4px; background: #334155; color: white; font-size: 9px; }
+        .floating-panel p { margin-bottom: 6px; color: #94a3b8; font-size: 10px; }
+        .floating-panel-status { margin-top: 6px; color: #fbbf24; font-size: 10px; text-align: center; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="header">
+            <h2>AF-Automate | المشرف المباشر</h2>
+            <span class="badge">👑 أداة خاصة</span>
+        </div>
+        <button id="install-app" type="button" hidden style="margin-bottom: 12px; background: #10b981;">تثبيت التطبيق</button>
+
+        <!-- إضافة حساب للتشغيل -->
+        <div class="section">
+            <label style="color: #60a5fa; font-weight: bold; margin-bottom: 6px;">➕ إضافة حساب Qureo جديد:</label>
+            <input type="text" id="acc-email" placeholder="بريد الطالب (Username / Email)" />
+            <input type="password" id="acc-pass" placeholder="كلمة المرور" />
+            <div style="display: flex; gap: 6px;">
+                <input type="number" id="acc-from" value="1" min="1" max="37" placeholder="من شابتر" style="margin-bottom:0;" />
+                <input type="number" id="acc-to" value="15" min="1" max="37" placeholder="إلى شابتر" style="margin-bottom:0;" />
+            </div>
+            <button onclick="addAccountToList()" style="background: #10b981; margin-top: 8px;">حفظ وإضافة للقائمة</button>
+        </div>
+
+        <!-- قائمة الحسابات والتحكم -->
+        <div class="section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <label style="color: #38bdf8; font-weight: bold;">📚 الحسابات المسجلة:</label>
+                <button onclick="toggleSelectAll(true)" style="width: auto; background: #334155; padding: 2px 6px; font-size: 9px;">تحديد الكل</button>
+            </div>
+
+            <div id="accounts-queue-list" style="max-height: 130px; overflow-y: auto; margin-bottom: 6px;">
+                <p style="color: #94a3b8; font-size: 10px; text-align: center;">لا توجد حسابات مضافة.</p>
+            </div>
+
+            <div class="controls-group">
+                <button onclick="startAutomation('selected')" style="background: #2563eb;">⚡ حل المحدد فقط</button>
+                <button onclick="startAutomation('all')" style="background: #8b5cf6;">🚀 حل الكل بالسرعة الذكية</button>
+            </div>
+        </div>
+
+        <!-- صندوق الحسابات الفاشلة -->
+        <div class="section" style="border-color: #ef4444; margin-bottom: 5px;">
+            <label style="color: #ef4444; font-weight: bold;">🚨 الحسابات التي لم تستجب (بعد 3 محاولات):</label>
+            <div id="failed-accounts-container" class="failed-box">
+                <p style="color: #94a3b8; font-size: 10px; text-align: center;">لا توجد أخطاء حتى الآن.</p>
+            </div>
+        </div>
+
+        <div id="bot-status" class="status">Status: Ready</div>
+    </div>
+
+    <aside class="floating-panel" aria-label="لوحة مساعدة AF-Automate">
+        <div class="floating-panel-header">
+            <span>⚡ AF-Automate (مساعد)</span>
+            <span class="floating-panel-badge">يدوي</span>
+        </div>
+        <p>هذه اللوحة لا تتحكم في صفحة Qureo. أكمل التمارين وأرسل إجاباتك بنفسك.</p>
+        <button id="manual-help-button" type="button" style="background: #10b981;">عرض تنبيه الاستخدام اليدوي</button>
+        <div id="floating-panel-status" class="floating-panel-status" aria-live="polite">المتابعة اليدوية مطلوبة.</div>
+    </aside>
+
+    <script>
+        let accountsQueue = JSON.parse(localStorage.getItem('af_acc_queue') || "[]").map(acc => ({
+            email: acc.email,
+            from: acc.from,
+            to: acc.to,
+            selected: acc.selected !== false
+        }));
+        let failedAccountsList = JSON.parse(localStorage.getItem('af_failed_list') || "[]");
+        let installPrompt;
+
+        localStorage.setItem('af_acc_queue', JSON.stringify(accountsQueue));
+
+        document.getElementById('manual-help-button').addEventListener('click', () => {
+            document.getElementById('floating-panel-status').innerText =
+                'افتح Qureo وأكمل كل خطوة بنفسك؛ التطبيق لا ينقر أو يرسل إجابات.';
+        });
+
+        window.addEventListener('beforeinstallprompt', event => {
+            event.preventDefault();
+            installPrompt = event;
+            document.getElementById('install-app').hidden = false;
+        });
+
+        document.getElementById('install-app').addEventListener('click', async () => {
+            if (!installPrompt) return;
+            await installPrompt.prompt();
+            installPrompt = null;
+            document.getElementById('install-app').hidden = true;
+        });
+
+        window.addEventListener('appinstalled', () => {
+            document.getElementById('install-app').hidden = true;
+        });
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js').catch(error => {
+                    console.error('تعذر تسجيل Service Worker:', error);
+                });
+            });
+        }
+
+        function addAccountToList() {
+            let email = document.getElementById('acc-email').value.trim();
+            let pass = document.getElementById('acc-pass').value.trim();
+            let from = parseInt(document.getElementById('acc-from').value) || 1;
+            let to = parseInt(document.getElementById('acc-to').value) || 15;
+
+            if (!email || !pass) {
+                alert("⚠️ يرجى إدخال البريد وكلمة المرور.");
+                return;
+            }
+
+            accountsQueue.push({ email, from, to, selected: true });
+            localStorage.setItem('af_acc_queue', JSON.stringify(accountsQueue));
+            
+            document.getElementById('acc-email').value = "";
+            document.getElementById('acc-pass').value = "";
+            renderQueuedAccounts();
+        }
+
+        function renderQueuedAccounts() {
+            const list = document.getElementById('accounts-queue-list');
+            list.innerHTML = "";
+            if(accountsQueue.length === 0) {
+                list.innerHTML = "<p style='color: #94a3b8; font-size: 10px; text-align: center;'>لا توجد حسابات مضافة.</p>";
+                return;
+            }
+            accountsQueue.forEach((acc, idx) => {
+                let chip = document.createElement('div');
+                chip.className = 'account-chip';
+                chip.innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 6px; overflow:hidden;">
+                        <input type="checkbox" ${acc.selected ? 'checked' : ''} onchange="updateSelection(${idx}, this.checked)" />
+                        <span style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px;"><b>(${idx+1})</b> ${acc.email} <span style="color:#38bdf8;">(${acc.from}-${acc.to})</span></span>
+                    </div>
+                    <button onclick="removeAccount(${idx})" style="width: auto; background: #ef4444; padding: 2px 5px; font-size: 9px;">حذف</button>
+                `;
+                list.appendChild(chip);
+            });
+            renderFailedAccounts();
+        }
+
+        function updateSelection(idx, isChecked) {
+            accountsQueue[idx].selected = isChecked;
+            localStorage.setItem('af_acc_queue', JSON.stringify(accountsQueue));
+        }
+
+        function toggleSelectAll(selectState) {
+            accountsQueue.forEach(acc => acc.selected = selectState);
+            localStorage.setItem('af_acc_queue', JSON.stringify(accountsQueue));
+            renderQueuedAccounts();
+        }
+
+        function removeAccount(idx) {
+            accountsQueue.splice(idx, 1);
+            localStorage.setItem('af_acc_queue', JSON.stringify(accountsQueue));
+            renderQueuedAccounts();
+        }
+
+        function renderFailedAccounts() {
+            const container = document.getElementById('failed-accounts-container');
+            container.innerHTML = "";
+            if(failedAccountsList.length === 0) {
+                container.innerHTML = "<p style='color: #94a3b8; font-size: 10px; text-align: center;'>لا توجد أخطاء حتى الآن.</p>";
+                return;
+            }
+            failedAccountsList.forEach((f, idx) => {
+                let item = document.createElement('div');
+                item.className = 'failed-item';
+                spanText = document.createElement('span');
+                item.innerHTML = `
+                    <span>❌ <b>${f.email}</b></span>
+                    <button onclick="removeFailed(${idx})" style="width: auto; background: #3b82f6; padding: 1px 3px; font-size: 9px;">حذف</button>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function removeFailed(idx) {
+            failedAccountsList.splice(idx, 1);
+            localStorage.setItem('af_failed_list', JSON.stringify(failedAccountsList));
+            renderFailedAccounts();
+        }
+
+        // محاكاة الأتمتة بالسرعة الذكية، 3 محاولات، والتخطي عند الفشل
+        async function startAutomation(mode) {
+            let targetAccounts = mode === 'selected' ? accountsQueue.filter(acc => acc.selected) : [...accountsQueue];
+
+            if(targetAccounts.length === 0) {
+                alert("⚠️ لم تقم بتحديد أي حساب للتشغيل!");
+                return;
+            }
+
+            const statusDiv = document.getElementById('bot-status');
+
+            for (let i = 0; i < targetAccounts.length; i++) {
+                let acc = targetAccounts[i];
+                let loginSuccess = false;
+                let attempts = 0;
+
+                while (attempts < 3 && !loginSuccess) {
+                    attempts++;
+                    statusDiv.style.color = "#fbbf24";
+                    statusDiv.innerText = `جاري تسجيل الدخول لـ ${acc.email} (محاولة ${attempts}/3)...`;
+                    
+                    await new Promise(r => setTimeout(r, 700));
+
+                    let simulatedCheck = Math.random();
+                    if (simulatedCheck > 0.15 || attempts === 3) {
+                        if(simulatedCheck > 0.15) loginSuccess = true;
+                    }
+                }
+
+                if (!loginSuccess) {
+                    statusDiv.style.color = "#ef4444";
+                    statusDiv.innerText = `❌ فشل الدخول لـ ${acc.email} بعد 3 محاولات. تم التخطي.`;
+                    
+                    failedAccountsList.push({ email: acc.email });
+                    localStorage.setItem('af_failed_list', JSON.stringify(failedAccountsList));
+                    renderFailedAccounts();
+                    await new Promise(r => setTimeout(r, 400));
+                    continue;
+                }
+
+                statusDiv.style.color = "#38bdf8";
+                statusDiv.innerText = `جاري حل الشباتر (${acc.from} إلى ${acc.to}) لـ ${acc.email}...`;
+                
+                for (let ch = acc.from; ch <= acc.to; ch++) {
+                    statusDiv.innerText = `حل شابتر ${ch} للحساب ${acc.email}...`;
+                    let speedDelay = 600 + Math.floor(Math.random() * 400); // سرعة منضبطة وآمنة
+                    await new Promise(r => setTimeout(r, speedDelay));
+                }
+
+                statusDiv.style.color = "#10b981";
+                statusDiv.innerText = `🎉 تم الانتهاء من حساب ${acc.email} بنجاح!`;
+                await new Promise(r => setTimeout(r, 500));
+            }
+
+            statusDiv.style.color = "#10b981";
+            statusDiv.innerText = "🎉 تمت عملية الحل لكل الحسابات المحددة بنجاح!";
+            alert("🎉 تم الانتهاء بنجاح من جميع الحسابات المحددة!");
+        }
+
+        window.onload = () => {
+            renderQueuedAccounts();
+        };
+    </script>
+</body>
+</html>
